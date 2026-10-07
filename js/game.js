@@ -3,14 +3,18 @@ import { MAX_IDLE, MIN_BAG_SWAP, NAMES, REASONS } from './config.js';
 import { $, S, app, shuffle, inMove, cur, refill, pushHist, snapshot, restore, createState } from './state.js';
 import { analyze, scoreWords } from './scoring.js';
 import { toast, fail, ask, render, tickUI, chooseDuration, openBlankPicker } from './ui.js';
+import { audio } from './audio.js';
 
 // ---------- Clock (timestamp based; driven by a single interval in main.js) ----------
+let lastWarnSec = -1;   // dedupes the last-10-seconds beep (tick runs 4x/second)
 export function tick() {
   if (S.ended) return;
   const now = performance.now(), p = cur();
   if (S.paused || !S.started) { S.last = now; return; }
   p.ms = Math.max(0, p.ms - (now - S.last)); S.last = now;
   if (p.ms === 0) { endGame('time'); return; }
+  const sec = Math.ceil(p.ms / 1000);
+  if (sec <= 10 && sec !== lastWarnSec) { lastWarnSec = sec; audio.play('lowTime'); }
   tickUI();
 }
 function setTurn(i) { tick(); if (S.ended) return false; S.cur = i; S.last = performance.now(); return true; }
@@ -32,6 +36,7 @@ export function place(t, r, c) {
     cur().rack[slot] = null; e = {t, r, c, slot}; S.move.push(e);
   }
   S.board[r][c] = t; S.land = t; S.pick = null;
+  audio.play('place');
   // A blank tile must be given a letter before the move can continue (clock paused meanwhile).
   if (t.blank && !t.as) { S.pending = e; S.paused = true; render(); openBlankPicker(); return true; }
   render(); return true;
@@ -43,6 +48,7 @@ export function unplace(e) {
   const i = rack[e.slot] ? rack.indexOf(null) : e.slot;
   rack[i] = e.t;
   S.move = S.move.filter(x => x !== e);
+  audio.play('recall');
 }
 export function cancelMove() { [...S.move].forEach(unplace); S.pick = null; }
 
@@ -57,6 +63,7 @@ export function submit() {
   p.score += pts; S.move = []; S.pick = null; S.idle = 0; S.pop = S.cur;
   refill(p);
   toast(`${NAMES[S.cur]}: +${pts} نقطة`, false);
+  audio.play(r.bingo ? 'win' : 'score');
   if (!p.rack.some(Boolean)) return endGame('rack');
   nextTurn(true);
 }
@@ -76,7 +83,7 @@ export function pass() {
   if (S.ended || S.swap || S.move.length) return;
   S.undo = null; S.idle++; pushHist({p: S.cur, type: 'pass'});
   if (S.idle >= MAX_IDLE) return endGame('idle');
-  toast(`${NAMES[S.cur]} مرّر الدور`, false); nextTurn();
+  audio.play('pass'); toast(`${NAMES[S.cur]} مرّر الدور`, false); nextTurn();
 }
 export function startSwap() {
   if (S.ended || S.move.length) return;
@@ -96,11 +103,12 @@ export function doSwap() {
   S.bag.push(...old); shuffle(S.bag);
   S.swap = false; S.sel.clear(); S.undo = null; S.idle++; pushHist({p: S.cur, type: 'swap', cnt: idx.length});
   if (S.idle >= MAX_IDLE) return endGame('idle');
-  toast(`تم تبديل ${idx.length} قطع`, false); nextTurn();
+  audio.play('swap'); toast(`تم تبديل ${idx.length} قطع`, false); nextTurn();
 }
 export function endGame(reason) {
   if (S.ended) return;
   S.ended = true;
+  audio.stopMusic(); audio.play('win');
   if (S.pending) { S.pending = null; $('#bd').close(); }
   if (app.judge) { app.judge = null; $('#jd').close(); }
   cancelMove(); S.swap = false; S.sel.clear(); S.pick = null;

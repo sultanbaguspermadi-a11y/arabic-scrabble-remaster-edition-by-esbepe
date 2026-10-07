@@ -30,3 +30,6 @@ export const LABEL = {1:'x2 حرف',2:'x3 حرف',3:'x2 كلمة',4:'x3 كلمة
 
 export const NAMES = ['اللاعب الأول', 'اللاعب الثاني'];
 export const REASONS = {time:'انتهى وقت أحد اللاعبين', rack:'أنهى أحد اللاعبين جميع قطعه والكيس فارغ', idle:'تتابع التمرير/التبديل دون تسجيل نقاط'};
+
+// Background music file. Replace the MP3 in place, or change the path here.
+export const MUSIC_SRC = 'assets/audio/music.mp3';

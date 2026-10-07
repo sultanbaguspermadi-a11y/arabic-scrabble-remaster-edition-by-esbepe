@@ -4,12 +4,13 @@ import { PENALTY, JUDGES_KEY, NAMES } from './config.js';
 import { $, S, app, esc, cur, restore } from './state.js';
 import { toast, render, chips } from './ui.js';
 import { tick, nextTurn } from './game.js';
+import { audio } from './audio.js';
 
 export function openJudge() {
   const e = S.hist[S.hist.length - 1];
   if (S.ended || S.swap || S.move.length || !S.undo || !e || e.type !== 'move' || e.st) return;
   app.judge = {e, stage: 0, names: [], votes: [], i: 0, ok: false, tally: ''};
-  S.paused = true; renderJudge(); $('#jd').showModal();
+  audio.play('challenge'); S.paused = true; renderJudge(); $('#jd').showModal();
 }
 // Dialog closed without applying a verdict (Esc / cancel): drop the session and resume the clock.
 export function abortJudge() {

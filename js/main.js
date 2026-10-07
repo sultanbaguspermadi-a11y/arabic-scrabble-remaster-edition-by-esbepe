@@ -4,8 +4,10 @@ import { S } from './state.js';
 import { buildDom, chooseDuration } from './ui.js';
 import { tick, newGame } from './game.js';
 import { initInput } from './input.js';
+import { audio } from './audio.js';
 
 function start() {
+  audio.init();
   buildDom();
   initInput();
   setInterval(tick, TICK_MS);
